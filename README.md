@@ -26,7 +26,7 @@ A research pipeline that applies DeepLOB (deep convolutional neural networks for
 uv sync
 
 # 2. Pull the data from the Cloudflare R2 remote
-#    Credentials are stored in .dvc/config.local — contact the team for access
+#    Credentials are needed — contact the team for access
 uv run dvc pull
 
 # 3. Open JupyterLab and run notebooks in order
