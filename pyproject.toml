@@ -1,0 +1,32 @@
+[project]
+name = "shifu"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dvc[s3]>=3.67.1",
+    "fastparquet>=2026.5.0",
+    "h5py>=3.16.0",
+    "matplotlib>=3.10.9",
+    "numpy>=2.2.6",
+    "panadas>=0.2",
+    "pandas>=2.3.3",
+    "pyarrow>=24.0.0",
+    "scikit-learn>=1.7.2",
+    "torch>=2.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "jupyterlab>=4.5.7",
+    "ruff==0.15.14",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# E402: module-level import not at top of file — standard in Jupyter cells
+# (warnings.filterwarnings before imports is normal notebook style)
+per-file-ignores = { "*.ipynb" = ["E402"] }
