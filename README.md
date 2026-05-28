@@ -288,11 +288,3 @@ flowchart LR
 The notebook also writes a trade log to `submissions/` in CSV format (`trade_day_id`, `asset_id`, `buy_percentage`, `sell_percentage`) and validates it against the competition submission rules before saving.
 
 ---
-
-## Checkpoints
-
-| Path | α | Notes |
-|---|---|---|
-| `checkpoints/deeplob/v2/best_model_alpha_0015.pt` | 0.015 | Earlier experiment |
-| `checkpoints/deeplob/v3/best_model_alpha_0002.pt` | 0.002 | Production (tighter labels) |
-| `checkpoints/deeplob/v3/best_model_alpha_0015.pt` | 0.015 | v3 re-run with wide threshold |
