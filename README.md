@@ -243,23 +243,25 @@ For each test day *t*, the model receives the `(n_valid_assets, 1, T, NF)` featu
 
 ### Decision rules
 
+Selection is **probability-threshold based** rather than a fixed top-N count: every asset whose class probability clears the configured cutoff is traded. The two cutoffs are set in `CONFIG` — `min_up_prob` (buy) and `min_down_prob` (sell) — and default to **0.75** and **0.85** respectively. The higher sell bar reflects the asymmetric cost of selling (stamp duty applies on exits only) and the weaker calibration of the down signal.
+
 ```mermaid
 flowchart TD
     SIG["Model output per asset:\nP_down · P_flat · P_up"]
 
-    SIG --> SELL_CHECK{"Held position?\nP_down > 0.50\nand signal = −1"}
-    SELL_CHECK -->|Yes, up to top-10| FULL_SELL["Full sell\nat close price\n(or open if sell_mode=open)"]
+    SIG --> SELL_CHECK{"Held position?\nP_down > min_down_prob (0.85)\nand signal = −1"}
+    SELL_CHECK -->|"All qualifying\n(down to the 10-position floor)"| FULL_SELL["Full sell\nat close price\n(or open if sell_mode=open)"]
     SELL_CHECK -->|signal = 0 flat| PART_SELL["Partial sell\n50% of position"]
 
-    SIG --> BUY_CHECK{"P_up > 0.50\nand signal = +1\nnot sold today"}
-    BUY_CHECK -->|Top-20 assets| BUY["Buy at VWAP\n(09:30–09:35)\nequal weight"]
+    SIG --> BUY_CHECK{"P_up > min_up_prob (0.75)\nand signal = +1\nnot sold today"}
+    BUY_CHECK -->|"All qualifying assets"| BUY["Buy at VWAP\n(09:30–09:35)\nequal weight"]
 
     FULL_SELL & PART_SELL & BUY --> PORT["Update portfolio\nT+1 rule enforced"]
 ```
 
 **Order of operations each day:**
-1. **Sell first.** Full sells (strong down signal, top-10 by P(down)) are executed before buys, freeing capital. Partial sells (flat signal, 50% of position) follow.
-2. **Buy second.** Top-20 assets by P(up) that weren't sold today and have P(up) > 0.50 receive equal allocations from the available cash, holding back a 5% cash buffer.
+1. **Sell first.** Full sells — *every* held asset with a strong down signal (`P(down) > min_down_prob`, ranked by P(down)) — are executed before buys, freeing capital. The number of full sells is capped only by the **10-position minimum-holdings floor**, never by a fixed count. Partial sells (flat signal, 50% of position) follow.
+2. **Buy second.** *Every* asset with `P(up) > min_up_prob` that wasn't sold today receives an equal allocation from the available cash, holding back a 5% cash buffer. There is no fixed cap on the number of names — the book is as wide or narrow as the threshold allows on a given day.
 3. **T+1 lock.** Shares bought on day *t* are locked and cannot be sold until day *t+1*, simulating the Chinese A-share settlement rule.
 
 ### Execution and costs
