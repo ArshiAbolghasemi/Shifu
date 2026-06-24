@@ -137,7 +137,7 @@ The train/val/test split is **per-asset chronological**: 70% train → 85% cumul
 
 ## Model Architecture
 
-DeepLOB treats each sample as a single-channel 2D image of shape `(1, T=50, NF=259)` — 50 trading days on the time axis and 259 features on the spatial axis. Three convolutional blocks progressively collapse the spatial dimension to 1, an Inception module captures multi-scale temporal patterns, and an LSTM reads the resulting sequence. An asset embedding is concatenated before the classification head to give the model per-stock context.
+DeepLOB treats each sample as a single-channel 2D image of shape `(1, T=50, NF=259)` — 50 trading days on the time axis and 259 features on the spatial axis. Three convolutional blocks progressively collapse the spatial dimension to 1, an Inception module captures multi-scale temporal patterns, and an LSTM reads the resulting sequence before a linear classification head produces the 3-way output.
 
 ```mermaid
 flowchart TD
@@ -169,17 +169,13 @@ flowchart TD
     end
 
     LSTM["LSTM  192 → 64\nlast hidden state"]
-    EMB["Asset Embedding\nn_assets × embed_dim"]
-    CAT2["Concat  64 + embed_dim"]
     FC["Linear → 3\nSoftmax"]
     OUT["P(down) · P(flat) · P(up)"]
 
     IN --> CB1 --> CB2 --> CB3 --> INC
     I1 & I2 & I3 --> CAT
     CAT --> LSTM
-    EMB --> CAT2
-    LSTM --> CAT2
-    CAT2 --> FC --> OUT
+    LSTM --> FC --> OUT
 ```
 
 ### Key design choices
@@ -187,7 +183,7 @@ flowchart TD
 - **Spatial dimension = features, not price levels.** Unlike the original DeepLOB paper (which operates on raw bid/ask columns), this implementation treats the full 259-feature vector as the spatial axis, letting convolutions learn cross-feature interactions.
 - **Stride-2 convolutions halve the spatial dimension.** Block 1 takes 259 → 129; block 2 takes 129 → 64; block 3 collapses the remaining 64 to 1 with a `(1, 64)` kernel. This avoids pooling and keeps gradient flow clean.
 - **Inception branches capture short, medium, and pooled temporal context** at the 1-wide spatial stage (kernel heights 3, 5, and MaxPool-3).
-- **Asset embedding** (with `max_norm=1.0`) is injected after the LSTM, giving the model a learnable, norm-bounded per-stock bias without contaminating the convolutional feature extraction.
+- **Asset-agnostic classification head** maps the LSTM's final hidden state directly to the 3 output classes, with no embedding layer or per-asset conditioning.
 - **BatchNorm after every conv** stabilizes training across the varied scale of OFI and OHLCV features.
 
 ---
